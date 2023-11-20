@@ -12,7 +12,7 @@
     <ToolBarContent>
         <MudFab Size="Size.Small" Color="Color.Primary" Class="pa-2" OnClick="Create" StartIcon="@Icons.Filled.Add" />
         <MudSpacer />
-        <MudSelect Class="ma-2" ValueChanged="@(x=>OnFilter(x))" T="bool?" Label="Filter" Placeholder="Active" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Text" AdornmentIcon="@Icons.Material.Filled.FilterList">
+        <MudSelect Class="ma-2" ValueChanged="@(x=>OnFilter(x))" T="bool?" Label="Active" Placeholder="Active" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Text" AdornmentIcon="@Icons.Material.Filled.FilterList">
             <MudSelectItem T="bool?" Value="null">All</MudSelectItem>
             <MudSelectItem T="bool?" Value="true">Yes</MudSelectItem>
             <MudSelectItem T="bool?" Value="false">No</MudSelectItem>
