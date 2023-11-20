@@ -1,0 +1,89 @@
+﻿@page "/employees/create"
+
+@using System.Text
+@using Intelogix.TimeTracker.Dtos;
+@using Intelogix.TimeTracker.Requests;
+@inject IEmployeeServiceClient EmployeeService
+<PageTitle>Create Employee</PageTitle>
+<MudToolBar>
+    <MudText GutterBottom="true">Create Employee</MudText>
+    <MudSpacer />
+    <MudBreadcrumbs Items="BreadcrumbItem"></MudBreadcrumbs>
+</MudToolBar>
+ 
+<MudCard Class="item-card mx-auto my-auto rounded-xl" Style="padding:20px;max-width:1000px">
+    <MudCardContent>
+        <MudForm Model="@EmployeeModel">
+            <MudCardContent>
+                <MudTextField Variant="Variant.Text" @bind-Value="EmployeeModel.Name" For="@(() => EmployeeModel.Name)" Immediate="true" Label="FullName" />
+            </MudCardContent>
+            <MudCardContent>
+                <MudCheckBox T="bool"  @bind-Checked="EmployeeModel.IsActive">Is Active</MudCheckBox>
+               
+            </MudCardContent>
+        </MudForm>
+
+    </MudCardContent>
+    <MudToolBar>
+        <MudSpacer />
+        <MudButton Class="ml-2 mr-2 mt-5 mb-10" Size="Size.Large" Disabled="@IsSaving" StartIcon="@Icons.Filled.Save" OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Saving</MudText>
+            }
+            else
+            {
+                <MudText>Save</MudText>
+            }
+        </MudButton>
+        <MudButton Class="ml-2 mr-2 mt-5 mb-10" Size="Size.Large" StartIcon="@Icons.Filled.ArrowBack" OnClick="Employees" Variant="Variant.Filled" Color="Color.Error">
+            Cancel
+        </MudButton>
+    </MudToolBar>
+</MudCard>
+
+@code {
+    private bool IsSaving { get; set; } = false;
+    private List<BreadcrumbItem> BreadcrumbItem = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("Dashboard", href: "/"),
+        new BreadcrumbItem("Employees", href: "employees"),
+        new BreadcrumbItem("Create", href: null, disabled: true)
+    };
+    private CreateEmployeeDto EmployeeModel = new CreateEmployeeDto();
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            IsSaving = true;
+            var result = await EmployeeService.CreateAsync(await AuthService.GetTokenAsync(),new CreateEmployeeRequest
+                {
+                    Employee = EmployeeModel
+                });
+            await DialogService.ShowMessageBox(
+         "",
+         (MarkupString)$"<h3 class='text-success'><b>Success</b></h3><br/><p>Employee {EmployeeModel.Name} with id <b>{result.EmployeeId}</b> successfully saved!</p>",
+         yesText: "Ok");
+            Reset();
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox(
+          "",
+          (MarkupString)$"<h3 class='text-danger'><b>Error</b></h3><br/><p>{ex?.InnerException?.Message ?? ex?.Message}</p>",
+          yesText: "Ok");
+        }
+
+        IsSaving = false;
+    }
+    private void Reset()
+    {
+        EmployeeModel = new CreateEmployeeDto();
+    }
+    private void Employees()
+    {
+        NavigationManager.NavigateTo("/employees");
+    }
+}

@@ -1,0 +1,83 @@
+﻿
+@page "/employees/timesheet/{Id}"
+@using Intelogix.TimeTracker.Dtos;
+@inject IEmployeeServiceClient EmployeeService
+<PageTitle>@Name TimeSheets</PageTitle>
+<MudToolBar>
+    <MudText GutterBottom="true">@Name - TimeSheets</MudText>
+    <MudSpacer />
+    <MudBreadcrumbs Items="BreadcrumbItem"></MudBreadcrumbs>
+</MudToolBar>
+<MudTable Class="item-card mx-auto my-auto rounded-xl" Style="padding:20px;max-width:1000px" Loading="true" ServerData="@(new Func<TableState, Task<TableData<ReadTimeSheetDto>>>(ServerReload))" Dense="true" Hover="true" Striped="true" @ref="TimeSheetTable">
+    <ToolBarContent>
+        <MudFab Size="Size.Small" Color="Color.Primary" Class="pa-2" OnClick="()=>Create(int.Parse(Id))" StartIcon="@Icons.Filled.Add" />
+        <MudSpacer />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>Employee Id</MudTh>
+        <MudTh>Clock In</MudTh>
+        <MudTh>Clock Out</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id">@context.Id</MudTd>
+        <MudTd DataLabel="FullName">@context.EmployeeId</MudTd>
+        <MudTd DataLabel="Active">@context.ClockIn</MudTd>
+        <MudTd DataLabel="Active">@context.ClockOut</MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    [Parameter]
+    public string Id{ get; set; }
+    public string Name { get; set; } = "";
+    private MudTable<ReadTimeSheetDto> TimeSheetTable;
+    private List<BreadcrumbItem> BreadcrumbItem = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("Home", href: "/"),
+        new BreadcrumbItem("TimeSheets", href: null, disabled: true),
+    };
+    private async Task<TableData<ReadTimeSheetDto>> ServerReload(TableState state)
+    {
+        try
+        {
+            TimeSheetTable.Loading = true;
+            if(int.TryParse(Id,out int id))
+            {
+                var response = await EmployeeService.GetAsync(await AuthService.GetTokenAsync(), id);
+                Name = response.Employee.Name;
+                StateHasChanged();
+                return new TableData<ReadTimeSheetDto>() { TotalItems = response.Employee.TimeSheets.Count(), Items = response.Employee.TimeSheets };
+            }                                         
+        }
+        catch (Exception ex)
+        {
+
+        }
+        TimeSheetTable.Loading = false;
+        return new TableData<ReadTimeSheetDto>();
+    }
+    private void Create(int id)
+    {
+        NavigationManager.NavigateTo($"/employees/timesheet/create/{id}");
+    }
+}
+
+
+@code {
+    protected async override Task OnInitializedAsync()
+    {
+        if (!await AuthService.IsAuthenticatedAsync())
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+}
+
+
+
+

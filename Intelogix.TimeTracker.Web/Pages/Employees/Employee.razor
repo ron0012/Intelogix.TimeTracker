@@ -1,0 +1,113 @@
+﻿@page "/"
+@page "/employees"
+@using Intelogix.TimeTracker.Dtos;
+@inject IEmployeeServiceClient EmployeeService
+<PageTitle>Employees</PageTitle>
+<MudToolBar>
+    <MudText GutterBottom="true">Employees</MudText>
+    <MudSpacer />
+    <MudBreadcrumbs Items="BreadcrumbItem"></MudBreadcrumbs>
+</MudToolBar>
+<MudTable Class="item-card mx-auto my-auto rounded-xl" Style="padding:20px;max-width:1000px" Loading="true" ServerData="@(new Func<TableState, Task<TableData<ReadEmployeeDto>>>(ServerReload))" Dense="true" Hover="true" Striped="true" @ref="EmployeeTable">
+    <ToolBarContent>
+        <MudFab Size="Size.Small" Color="Color.Primary" Class="pa-2" OnClick="Create" StartIcon="@Icons.Filled.Add" />
+        <MudSpacer />
+        <MudSelect Class="ma-2" ValueChanged="@(x=>OnFilter(x))" T="bool?" Label="Filter" Placeholder="Active" AnchorOrigin="Origin.BottomCenter" Variant="Variant.Text" AdornmentIcon="@Icons.Material.Filled.FilterList">
+            <MudSelectItem T="bool?" Value="null">All</MudSelectItem>
+            <MudSelectItem T="bool?" Value="true">Yes</MudSelectItem>
+            <MudSelectItem T="bool?" Value="false">No</MudSelectItem>
+
+        </MudSelect>
+        <MudTextField Class="ma-2" T="string" ValueChanged="@(x=>OnSearch(x))" Label="Search" Placeholder="Keyword" Variant="Variant.Text" Adornment="Adornment.End"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>FullName</MudTh>
+        <MudTh>IsActive</MudTh>
+        <MudTh>Actions</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id">@context.Id</MudTd>
+        <MudTd DataLabel="FullName">@context.Name</MudTd>
+        <MudTd DataLabel="Active">@context.IsActive</MudTd>
+        <MudTd DataLabel="Actions">
+            <MudToolBar>
+                <MudSpacer />
+                <MudFab Class="ma-1" Size="Size.Small" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LockClock" OnClick="()=>TimeSheet(context.Id)" />
+                <MudFab Class="ma-1" Size="Size.Small" Color="Color.Primary"  StartIcon="@Icons.Material.Filled.Edit" OnClick="()=>Edit(context.Id)" />
+            </MudToolBar>
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private string? Keyword = null;
+    private bool? IsActive = null;
+    private MudTable<ReadEmployeeDto> EmployeeTable;
+    private List<BreadcrumbItem> BreadcrumbItem = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("Home", href: "/"),
+        new BreadcrumbItem("Employees", href: null, disabled: true),
+    };
+    private async Task<TableData<ReadEmployeeDto>> ServerReload(TableState state)
+    {
+        try
+        {
+            EmployeeTable.Loading = true;
+            var result = await EmployeeService.SearchAsync(
+            token:await AuthService.GetTokenAsync(), 
+            query: Keyword,
+            isActive: IsActive, 
+            skip: state.Page * state.PageSize,
+            take: state.PageSize);
+            return new TableData<ReadEmployeeDto>() { TotalItems = result.Result.Value, Items = result.Employees };
+        }
+        catch (Exception ex)
+        {
+
+        }
+        EmployeeTable.Loading = false;
+        return new TableData<ReadEmployeeDto>();
+    }
+    private void OnSearch(string keyword)
+    {
+        Keyword = keyword;
+        EmployeeTable.ReloadServerData();
+    }
+    private void OnFilter(bool? isActive)
+    {
+        IsActive = isActive;
+        EmployeeTable.ReloadServerData();
+    }
+    private void Create()
+    {
+        NavigationManager.NavigateTo("/employees/create");
+    }
+    private void Edit(int id)
+    {
+        NavigationManager.NavigateTo($"/employees/edit/{id}");
+    }
+    private void TimeSheet(int id)
+    {
+        NavigationManager.NavigateTo($"/employees/timesheet/{id}");
+    }
+}
+
+
+@code {
+    protected async override Task OnInitializedAsync()
+    {
+        if (!await AuthService.IsAuthenticatedAsync())
+        {
+            NavigationManager.NavigateTo("/login");
+        }
+    }
+}
+
+
+
+

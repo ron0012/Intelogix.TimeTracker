@@ -1,0 +1,111 @@
+﻿@page "/employees/timesheet/create/{Id}"
+
+@using System.Text
+@using Intelogix.TimeTracker.Dtos;
+@using Intelogix.TimeTracker.Requests;
+@inject IEmployeeServiceClient EmployeeService
+<PageTitle>Create TimeSheet</PageTitle>
+<MudToolBar>
+    <MudText GutterBottom="true">Create TimeSheet</MudText>
+    <MudSpacer />
+    <MudBreadcrumbs Items="BreadcrumbItem"></MudBreadcrumbs>
+</MudToolBar>
+ 
+<MudCard Class="item-card mx-auto my-auto rounded-xl" Style="padding:20px;max-width:1000px">
+    <MudCardContent>
+        <MudForm Model="@TimeSheetModel">
+            <MudCardContent>
+                <MudTextField ReadOnly Variant="Variant.Text" @bind-Value="TimeSheetModel.EmployeeId" For="@(() => TimeSheetModel.EmployeeId)" Immediate="true" Label="Employee Id" />
+            </MudCardContent>
+                <MudCardContent>
+                <MudDatePicker Label="Date" @bind-Date="Date" />
+                </MudCardContent>
+               
+            <MudCardContent>
+                <MudTimePicker Label="Clock In Time" AmPm="true" @bind-Time="@ClockInTime" />
+            </MudCardContent>
+                <MudCardContent>
+                <MudTimePicker Label="Clock Out Time" AmPm="true" @bind-Time="@ClockOutTime" />
+                </MudCardContent>
+        </MudForm>
+
+    </MudCardContent>
+    <MudToolBar>
+        <MudSpacer />
+        <MudButton Class="ml-2 mr-2 mt-5 mb-10" Size="Size.Large" Disabled="@IsSaving" StartIcon="@Icons.Filled.Save" OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary">
+            @if (IsSaving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Saving</MudText>
+            }
+            else
+            {
+                <MudText>Save</MudText>
+            }
+        </MudButton>
+        <MudButton Class="ml-2 mr-2 mt-5 mb-10" Size="Size.Large" StartIcon="@Icons.Filled.ArrowBack" OnClick="TimeSheets" Variant="Variant.Filled" Color="Color.Error">
+            Cancel
+        </MudButton>
+    </MudToolBar>
+</MudCard>
+
+@code {
+    private bool IsSaving { get; set; } = false;
+    TimeSpan? ClockInTime{ get; set; }
+    DateTime? Date { get; set; }
+    TimeSpan? ClockOutTime { get; set; }
+    [Parameter]
+    public string Id{ get; set; }
+    private List<BreadcrumbItem> BreadcrumbItem = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("Dashboard", href: "/"),
+        new BreadcrumbItem("TimeSheets", href: "employees"),
+        new BreadcrumbItem("Create", href: null, disabled: true)
+    };
+    private CreateTimeSheetDto TimeSheetModel = new CreateTimeSheetDto();
+    protected override void OnInitialized()
+    {
+        TimeSheetModel = new CreateTimeSheetDto { EmployeeId = int.Parse(Id) };
+    }
+
+
+
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            IsSaving = true;
+            TimeSheetModel.ClockIn = Date.Value + ClockInTime.Value;
+            TimeSheetModel.ClockOut = Date.Value + ClockOutTime.Value;
+            var result = await EmployeeService.CreateTimeSheetAsync(await AuthService.GetTokenAsync(),new CreateTimeSheetRequest
+                {
+                    TimeSheet = TimeSheetModel
+                });
+            await DialogService.ShowMessageBox(
+         "",
+         (MarkupString)$"<h3 class='text-success'><b>Success</b></h3><br/><p>TimeSheet</b> successfully saved!</p>",
+         yesText: "Ok");
+            Reset();
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox(
+          "",
+          (MarkupString)$"<h3 class='text-danger'><b>Error</b></h3><br/><p>{ex?.InnerException?.Message ?? ex?.Message}</p>",
+          yesText: "Ok");
+        }
+
+        IsSaving = false;
+    }
+    private void Reset()
+    {
+        Date = null;
+        ClockInTime = null;
+        ClockOutTime = null;
+    }
+    private void TimeSheets()
+    {
+        NavigationManager.NavigateTo($"/employees/timesheet/{Id}");
+    }
+}

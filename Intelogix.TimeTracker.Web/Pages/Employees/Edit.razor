@@ -1,0 +1,102 @@
+﻿@page "/employees/edit/{Id}"
+
+@using System.Text
+@using Intelogix.TimeTracker.Dtos;
+@using Intelogix.TimeTracker.Requests;
+@inject IEmployeeServiceClient EmployeeService
+<PageTitle>Update Employee</PageTitle>
+<MudToolBar>
+    <MudText GutterBottom="true">Update Employee</MudText>
+    <MudSpacer />
+    <MudBreadcrumbs Items="BreadcrumbItem"></MudBreadcrumbs>
+</MudToolBar>
+ 
+<MudCard Class="item-card mx-auto my-auto rounded-xl" Style="padding:20px;max-width:1000px">
+    <MudCardContent>
+        <MudForm Model="@EmployeeModel">
+            <MudCardContent>
+                <MudTextField ReadOnly Variant="Variant.Text" @bind-Value="EmployeeModel.Id" For="@(() => EmployeeModel.Id)" Immediate="true" Label="Id" />
+            </MudCardContent>
+            <MudCardContent>
+                <MudTextField Variant="Variant.Text" @bind-Value="EmployeeModel.Name" For="@(() => EmployeeModel.Name)" Immediate="true" Label="FullName" />
+            </MudCardContent>
+            <MudCardContent>
+                <MudCheckBox T="bool"  @bind-Checked="EmployeeModel.IsActive">Is Active</MudCheckBox>
+               
+            </MudCardContent>
+        </MudForm>
+
+    </MudCardContent>
+    <MudToolBar>
+        <MudSpacer />
+        <MudButton Class="ml-2 mr-2 mt-5 mb-10" Size="Size.Large" Disabled="@IsUpdating" StartIcon="@Icons.Material.Filled.Update" OnClick="UpdateAsync" Variant="Variant.Filled" Color="Color.Primary">
+            @if (IsUpdating)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Updating</MudText>
+            }
+            else
+            {
+                <MudText>Update</MudText>
+            }
+        </MudButton>
+        <MudButton Class="ml-2 mr-2 mt-5 mb-10" Size="Size.Large" StartIcon="@Icons.Filled.ArrowBack" OnClick="Employees" Variant="Variant.Filled" Color="Color.Error">
+            Cancel
+        </MudButton>
+    </MudToolBar>
+</MudCard>
+
+@code {
+    private bool IsUpdating { get; set; } = false;
+    [Parameter]
+    public string Id { get; set; }
+    private string Token { get; set; }
+    private List<BreadcrumbItem> BreadcrumbItem = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem("Dashboard", href: "/"),
+        new BreadcrumbItem("Employees", href: "employees"),
+        new BreadcrumbItem("Update", href: null, disabled: true)
+    };
+    private UpdateEmployeeDto EmployeeModel = new UpdateEmployeeDto();
+
+    protected async override Task OnInitializedAsync()
+    {
+        Token = await AuthService.GetTokenAsync();
+        if(int.TryParse(Id, out int id))
+        {
+            var response = await EmployeeService.GetAsync(Token, id);
+            EmployeeModel.Id = response.Employee.Id;
+            EmployeeModel.Name = response.Employee.Name;
+            EmployeeModel.IsActive = response.Employee.IsActive;
+        }
+
+    }
+    private async Task UpdateAsync()
+    {
+        try
+        {
+            IsUpdating = true;
+            var result = await EmployeeService.UpdateAsync(Token,new UpdateEmployeeRequest
+                {
+                    Employee = EmployeeModel
+                });
+            await DialogService.ShowMessageBox(
+         "",
+         (MarkupString)$"<h3 class='text-success'><b>Success</b></h3><br/><p>Employee {EmployeeModel.Name} with id <b>{EmployeeModel.Id}</b> successfully updated!</p>",
+         yesText: "Ok");
+        }
+        catch (Exception ex)
+        {
+            await DialogService.ShowMessageBox(
+          "",
+          (MarkupString)$"<h3 class='text-danger'><b>Error</b></h3><br/><p>{ex?.InnerException?.Message ?? ex?.Message}</p>",
+          yesText: "Ok");
+        }
+
+        IsUpdating = false;
+    }
+    private void Employees()
+    {
+        NavigationManager.NavigateTo("/employees");
+    }
+}
